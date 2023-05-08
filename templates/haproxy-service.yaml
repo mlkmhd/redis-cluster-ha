@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-ha-load-balancer
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - name: 6379tcp1
+    port: 6379
+    protocol: TCP
+    targetPort: 6379
+  selector:
+    workload.user.cattle.io/workloadselector: deployment-redis-ha-load-balancer
+  sessionAffinity: None
+  type: ClusterIP

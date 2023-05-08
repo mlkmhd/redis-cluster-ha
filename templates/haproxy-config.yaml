@@ -1,0 +1,35 @@
+{{- $fullName := include "redis-ha.fullname" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-ha-load-balancer-conf
+  namespace: {{ .Release.Namespace }}
+data:
+  haproxy.cfg: |-
+    global
+        daemon
+        maxconn 256
+
+    defaults
+        mode tcp
+        timeout connect 4s
+        timeout client 30s
+        timeout server 30s
+
+    frontend redis-write
+        bind *:6379
+        default_backend redis-primary
+
+    backend redis-primary
+        option tcp-check
+        tcp-check send AUTH\ {{ .Values.redisPassword }}\r\n
+        tcp-check expect string +OK
+        tcp-check send PING\r\n
+        tcp-check expect string +PONG
+        tcp-check send info\ replication\r\n
+        tcp-check expect string role:master
+        tcp-check send QUIT\r\n
+        tcp-check expect string +OK
+        server redis-01 {{ $fullName }}-announce-0:6379 check inter 1s
+        server redis-02 {{ $fullName }}-announce-1:6379 check inter 1s
+        server redis-03 {{ $fullName }}-announce-2:6379 check inter 1s
