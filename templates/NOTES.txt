@@ -4,8 +4,12 @@ Redis can be accessed via port {{ .Values.redis.port }} and Sentinel can be acce
 To connect to your Redis server:
 
 {{- if .Values.auth }}
+{{- $name := include "redis-ha.fullname" . -}}
+{{- if .Values.existingSecret }}
+{{- $name = .Values.existingSecret -}}
+{{- end }}
 1. To retrieve the redis password:
-   echo $(kubectl get secret {{ template "redis-ha.fullname" . }} -o "jsonpath={.data['auth']}" | base64 --decode)
+   echo $(kubectl get secret {{ $name }} -o "jsonpath={.data['{{ .Values.authKey }}']}" | base64 --decode)
 
 2. Connect to the Redis master pod that you can use as a client. By default the {{ template "redis-ha.fullname" . }}-server-0 pod is configured as the master:
 

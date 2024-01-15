@@ -3,7 +3,7 @@
 ##
 image:
   repository: redis
-  tag: 6.0.9-alpine
+  tag: 7-alpine
   pullPolicy: IfNotPresent
 ## replicas number for each component
 replicas: 3
@@ -63,22 +63,22 @@ redis:
 
   ## Custom redis.conf files used to override default settings. If this file is
   ## specified then the redis.config above will be ignored.
-  customConfig: |-
-      dir "/data"
-      maxmemory 0
-      databases 32
-      maxmemory-policy volatile-lru
-      min-slaves-max-lag 10
-      min-slaves-to-write 0
-      rdbchecksum yes
-      rdbcompression yes
-      repl-diskless-sync yes
-      save 
-      requirepass eecohchoh1KiSh2Aib7a
-      masterauth eecohchoh1KiSh2Aib7a
-      user aaserver on +@all -FLUSHDB -FLUSHALL -select +select|1 ~* >fGTp9F9fwc
-      user channelmanager on +@all -FLUSHDB -FLUSHALL -select +select|2 ~* >uok3AhZ8oj
-      user iban on +@all -FLUSHDB -FLUSHALL -select +select|3 ~* >uas3AhZ8oj
+##  customConfig: |-
+##      dir "/data"
+##      maxmemory 0
+##      databases 32
+##      maxmemory-policy volatile-lru
+##      min-slaves-max-lag 10
+##      min-slaves-to-write 0
+##      rdbchecksum yes
+##      rdbcompression yes
+##      repl-diskless-sync yes
+##      save
+##      requirepass eecohchoh1KiSh2Aib7a
+##      masterauth eecohchoh1KiSh2Aib7a
+##      user aaserver on +@all -FLUSHDB -FLUSHALL -select +select|1 ~* >fGTp9F9fwc
+##      user channelmanager on +@all -FLUSHDB -FLUSHALL -select +select|2 ~* >uok3AhZ8oj
+##      user iban on +@all -FLUSHDB -FLUSHALL -select +select|3 ~* >uas3AhZ8oj
 
   resources: {}
   #  requests:
@@ -172,7 +172,7 @@ affinity: |
 exporter:
   enabled: false
   image: oliver006/redis_exporter
-  tag: v0.31.0
+  tag: v1.56.0-alpine
   pullPolicy: IfNotPresent
 
   # prometheus port & scrape path
@@ -191,7 +191,7 @@ podDisruptionBudget: {}
 
 ## Configures redis with AUTH (requirepass & masterauth conf params)
 auth: true
-redisPassword: "eecohchoh1KiSh2Aib7a"
+# redisPassword: ""
 
 ## Use existing secret containing key `authKey` (ignores redisPassword)
 # existingSecret:
@@ -229,6 +229,6 @@ hostPath:
   chown: true
 
 haproxy:
-  image: haproxy:2.1
+  image: haproxy:2.9-alpine
   replicas: 2
   nodeport: 30353
