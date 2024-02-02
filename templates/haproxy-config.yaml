@@ -5,25 +5,53 @@ metadata:
   name: redis-ha-load-balancer-conf
   namespace: {{ .Release.Namespace }}
 data:
+  init.sh: |-
+    HAPROXY_CONF=/config/haproxy.cfg
+    set -eu
+
+    copy_config() {
+        cp /readonly-config/haproxy.cfg "$HAPROXY_CONF"
+    }
+    set_auth() {
+        echo "Setting auth values"
+        ESCAPED_AUTH=$(echo "$AUTH" | sed -e 's/[\/&]/\\&/g');
+        sed -i "s/replace-default-auth/${ESCAPED_AUTH}/" "$HAPROXY_CONF"
+        sed -i "s/^    # /    /" "$HAPROXY_CONF"
+    }
+
+    echo "Initializing config.."
+
+    copy_config
+    if [ "${AUTH:-}" ]
+    then
+      set_auth
+    fi
+
+    echo >> $HAPROXY_CONF
+
+    echo "Ready..."
+
   haproxy.cfg: |-
     global
-        daemon
         maxconn 256
+        log stdout format raw local0 notice
 
     defaults
         mode tcp
+        log global
         timeout connect 4s
         timeout client 30s
         timeout server 30s
 
     frontend redis-write
         bind *:6379
+        option tcplog
         default_backend redis-primary
 
     backend redis-primary
         option tcp-check
-        tcp-check send AUTH\ {{ .Values.redisPassword }}\r\n
-        tcp-check expect string +OK
+        # tcp-check send AUTH\ replace-default-auth\r\n
+        # tcp-check expect string +OK
         tcp-check send PING\r\n
         tcp-check expect string +PONG
         tcp-check send info\ replication\r\n

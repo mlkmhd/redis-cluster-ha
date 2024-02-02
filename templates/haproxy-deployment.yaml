@@ -25,9 +25,42 @@ spec:
       labels:
         workload.user.cattle.io/workloadselector: deployment-redis-ha-load-balancer
     spec:
+      initContainers:
+        - name: config-init
+          image: alpine:latest
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          resources:
+{{ toYaml .Values.init.resources | indent 12 }}
+          command:
+            - sh
+          args:
+            - /readonly-config/init.sh
+          env:
+{{- if .Values.auth }}
+          - name: AUTH
+            valueFrom:
+              secretKeyRef:
+              {{- if .Values.existingSecret }}
+                name: {{ .Values.existingSecret }}
+              {{- else }}
+                name: {{ template "redis-ha.fullname" . }}
+              {{- end }}
+                key: {{ .Values.authKey }}
+{{- end }}
+          volumeMounts:
+            - name: readonly-config
+              mountPath: /readonly-config
+              readOnly: true
+            - name: config
+              mountPath: /config
       containers:
       - image: {{ .Values.haproxy.image }}
         name: haproxy
+        command:
+          - haproxy
+        args:
+          - "-f"
+          - /config/haproxy.cfg
         ports:
         - containerPort: 6379
           name: 6379tcp1
@@ -43,21 +76,17 @@ spec:
         terminationMessagePolicy: File
         tty: true
         volumeMounts:
-        - mountPath: /usr/local/etc/haproxy/haproxy.cfg
-          name: vol1
-          subPath: haproxy.cfg
+        - mountPath: /config
+          name: config
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext: {}
       terminationGracePeriodSeconds: 30
       volumes:
-      - configMap:
-          defaultMode: 511
-          items:
-          - key: haproxy.cfg
-            mode: 511
-            path: haproxy.cfg
+      - name: readonly-config
+        configMap:
           name: redis-ha-load-balancer-conf
           optional: false
-        name: vol1
+      - name: config
+        emptyDir: {}
